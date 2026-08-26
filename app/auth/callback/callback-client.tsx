@@ -8,10 +8,8 @@ export default function AuthCallbackClient() {
   const router = useRouter();
 
   useEffect(() => {
-    // BRUTE FORCE REDIRECT: 
-    // Since this page is only reached after the wallet provider 
-    // has successfully redirected back to the app, we don't need 
-    // to wait for the SDK to sync state. Just send them home.
+    // Force immediate redirect back to home.
+    // The SDK handles the session persistence in the background.
     router.replace('/');
   }, [router]);
 

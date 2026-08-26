@@ -77,10 +77,19 @@ export default function TokenArena() {
   const currentList = viewMode === 'alltime' ? allTimeBids : todayBids;
   const highestBid = allTimeBids.length > 0 ? allTimeBids[0].amount : 0;
 
+  const handleConnect = async () => {
+    try {
+      open(); 
+    } catch (err: any) {
+      console.error('Connection failed:', err);
+      showToast(err?.message || 'Connection failed', 'err');
+    }
+  };
+
   const handleBid = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!connected || !solanaAddress) {
-      open(); // opens Phantom Connect modal
+      open();
       return;
     }
 
@@ -117,17 +126,14 @@ export default function TokenArena() {
         }).compileToV0Message()
       );
 
-      // Sign & send via Phantom Connect SDK chain interface
       const sig = await solana.signAndSendTransaction(transaction);
       const signature = typeof sig === 'string' ? sig : sig.signature;
 
-      // Confirm on-chain
       const confirmation = await connection.confirmTransaction(signature, 'confirmed');
       if (confirmation.value.err) {
         throw new Error('Transaction failed on-chain');
       }
 
-      // Backend verifies the tx before accepting bid
       const verifyRes = await fetch('/api/bids', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
