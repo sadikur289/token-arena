@@ -1,39 +1,33 @@
 "use client";
 
-// Phantom Connect provider wrapper.
-// If NEXT_PUBLIC_PHANTOM_APP_ID is not set, renders children directly
-// (display-only mode: leaderboard works, wallet features disabled).
-import React, { useMemo } from 'react';
-import { PhantomProvider, darkTheme } from '@phantom/react-sdk';
-import { AddressType } from '@phantom/browser-sdk';
+import React, { useMemo, Suspense } from 'react';
+import { ConnectionProvider, WalletProvider, WalletModalProvider } from '@solana/wallet-adapter-react';
+import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { clusterApiUrl } from '@solana/web3.js';
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const appId = process.env.NEXT_PUBLIC_PHANTOM_APP_ID;
+  // Use the environment variable for RPC or fallback to Devnet
+  const endpoint = useMemo(() => {
+    return process.env.NEXT_PUBLIC_SOLANA_RPC || clusterApiUrl(WalletAdapterNetwork.Devnet);
+  }, []);
 
-  const config = useMemo(() => {
-    if (!appId) return null;
-    return {
-      providers: ['google', 'apple', 'injected'] as ('google' | 'apple' | 'injected')[],
-      appId,
-      addressTypes: [AddressType.solana],
-      authOptions: {
-        redirectUrl: typeof window !== 'undefined'
-          ? `${window.location.origin}/auth/callback`
-          : undefined,
-      },
-      autoConnect: true,
-    };
-  }, [appId]);
-
-  // Don't render the SDK provider until we're on the client with an App ID —
-  // avoids prerender crashes from browser-only SDK internals.
-  if (!config || typeof window === 'undefined') {
-    return <>{children}</>;
-  }
+  // Standard Wallet Adapters list
+  const wallets = useMemo(() => [
+    new PhantomWalletAdapter(),
+    new SolflareWalletAdapter(),
+  ], []);
 
   return (
-    <PhantomProvider config={config} theme={darkTheme} appName="Token Arena">
-      {children}
-    </PhantomProvider>
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-white">Loading Wallet...</div>}>
+            {children}
+          </Suspense>
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
   );
 }

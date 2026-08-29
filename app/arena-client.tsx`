@@ -25,7 +25,7 @@ export default function TokenArena() {
   const [activeViewers, setActiveViewers] = useState(1);
   const [toast, setToast] = useState<{ msg: string; kind: 'ok' | 'err' } | null>(null);
 
-  // Standard Wallet Adapter Hooks
+  // The Professional Wallet Hook (Standard Wallet Adapter)
   const { publicKey, connected, connect, disconnect, sendTransaction } = useWallet();
 
   useEffect(() => {
@@ -105,6 +105,7 @@ export default function TokenArena() {
       );
 
       const signature = await sendTransaction(transaction, connection);
+
       const confirmation = await connection.confirmTransaction(signature, 'confirmed');
       if (confirmation.value.err) {
         throw new Error('Transaction failed on-chain');
@@ -153,6 +154,7 @@ export default function TokenArena() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-zinc-700">
+      {/* Toast */}
       {toast && (
         <div
           className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[10000] px-5 py-3 rounded-full text-sm font-bold shadow-2xl border ${
