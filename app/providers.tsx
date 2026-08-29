@@ -8,12 +8,10 @@ import { clusterApiUrl } from '@solana/web3.js';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  // Use the environment variable for RPC or fallback to Devnet
   const endpoint = useMemo(() => {
     return process.env.NEXT_PUBLIC_SOLANA_RPC || clusterApiUrl(WalletAdapterNetwork.Devnet);
   }, []);
 
-  // Standard Wallet Adapters list
   const wallets = useMemo(() => [
     new PhantomWalletAdapter(),
     new SolflareWalletAdapter(),
