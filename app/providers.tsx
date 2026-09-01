@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useMemo, Suspense } from 'react';
-import { ConnectionProvider, WalletProvider, WalletModalProvider } from '@solana/wallet-adapter-react';
+import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
