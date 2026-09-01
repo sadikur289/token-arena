@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton, useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Connection, PublicKey, VersionedTransaction, TransactionMessage, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 interface Bid {
@@ -26,7 +27,8 @@ export default function TokenArena() {
   const [toast, setToast] = useState<{ msg: string; kind: 'ok' | 'err' } | null>(null);
 
   // Standard Wallet Adapter Hooks
-  const { publicKey, connected, connect, disconnect, sendTransaction } = useWallet();
+  const { publicKey, connected, sendTransaction } = useWallet();
+  const { setVisible } = useWalletModal();
 
   useEffect(() => {
     fetchBids();
@@ -67,7 +69,7 @@ export default function TokenArena() {
   const handleBid = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!connected || !publicKey) {
-      connect(); 
+      setVisible(true);
       return;
     }
 
@@ -171,12 +173,7 @@ export default function TokenArena() {
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             <span className="text-xs font-mono">{activeViewers.toLocaleString()} online</span>
           </div>
-          <button
-            onClick={() => (connected ? disconnect() : connect())}
-            className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs font-bold hover:bg-zinc-700 transition-all"
-          >
-            {connected && shortKey ? `${shortKey} • Disconnect` : 'Connect Wallet'}
-          </button>
+          <WalletMultiButton />
         </div>
 
         <h1 className="text-3xl font-bold tracking-tighter mb-6">
@@ -256,14 +253,9 @@ export default function TokenArena() {
           >
             <h2 className="text-xl font-bold uppercase tracking-tight mb-6">Enter the Arena</h2>
             {!connected && (
-              <div className="mb-6 space-y-3">
+              <div className="mb-6 space-y-3 flex flex-col items-center">
                 <p className="text-xs text-yellow-500 text-center font-mono uppercase">Connect your wallet to bid</p>
-                <button
-                  onClick={() => connect()}
-                  className="w-full py-3 bg-[#4C469D] text-white font-bold uppercase text-xs rounded-lg hover:opacity-90"
-                >
-                  Connect Wallet
-                </button>
+                <WalletMultiButton />
                 <p className="text-[10px] text-zinc-600 text-center">
                   Connect your Solana wallet to enter the arena.
                 </p>
