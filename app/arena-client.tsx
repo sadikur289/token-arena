@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Connection, PublicKey, VersionedTransaction, TransactionMessage, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 interface Bid {
@@ -26,7 +27,8 @@ export default function TokenArena() {
   const [toast, setToast] = useState<{ msg: string; kind: 'ok' | 'err' } | null>(null);
 
   // Standard Wallet Adapter Hooks
-  const { publicKey, connected, connect, disconnect, sendTransaction } = useWallet();
+  const { publicKey, connected, disconnect, sendTransaction } = useWallet();
+  const { setVisible } = useWalletModal();
 
   useEffect(() => {
     fetchBids();
@@ -67,7 +69,7 @@ export default function TokenArena() {
   const handleBid = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!connected || !publicKey) {
-      connect(); 
+      setVisible(true);
       return;
     }
 
@@ -76,9 +78,18 @@ export default function TokenArena() {
       const amountUSD = parseFloat(formData.amount);
       const amountSOL = amountUSD / SOL_PRICE_USD;
 
-      const treasury = process.env.NEXT_PUBLIC_TREASURY_WALLET;
-      if (!treasury) {
-        showToast('Bidding is not configured yet.', 'err');
+      const treasuryStr = process.env.NEXT_PUBLIC_TREASURY_WALLET;
+      if (!treasuryStr) {
+        showToast('Bidding is not configured yet (treasury missing).', 'err');
+        setIsProcessing(false);
+        return;
+      }
+
+      let to: PublicKey;
+      try {
+        to = new PublicKey(treasuryStr);
+      } catch {
+        showToast('Invalid treasury wallet address configured.', 'err');
         setIsProcessing(false);
         return;
       }
@@ -86,9 +97,8 @@ export default function TokenArena() {
       const connection = new Connection(
         process.env.NEXT_PUBLIC_SOLANA_RPC || 'https://api.devnet.solana.com'
       );
-      const { blockhash } = await connection.getLatestBlockhash();
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
       const from = publicKey;
-      const to = new PublicKey(treasury);
 
       const transaction = new VersionedTransaction(
         new TransactionMessage({
@@ -105,7 +115,10 @@ export default function TokenArena() {
       );
 
       const signature = await sendTransaction(transaction, connection);
-      const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+      const confirmation = await connection.confirmTransaction(
+        { signature, blockhash, lastValidBlockHeight },
+        'confirmed'
+      );
       if (confirmation.value.err) {
         throw new Error('Transaction failed on-chain');
       }
@@ -144,7 +157,7 @@ export default function TokenArena() {
 
   const handleProjectClick = async (id: string, link: string) => {
     try { await fetch(`/api/bids/${id}`, { method: 'POST' }); } catch {}
-    if (/^https?:\/\/ /i.test(link)) {
+    if (/^https?:\/\/.+/i.test(link)) {
       window.open(link, '_blank', 'noopener,noreferrer');
     }
   };
@@ -172,7 +185,7 @@ export default function TokenArena() {
             <span className="text-xs font-mono">{activeViewers.toLocaleString()} online</span>
           </div>
           <button
-            onClick={() => (connected ? disconnect() : connect())}
+            onClick={() => (connected ? disconnect() : setVisible(true))}
             className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs font-bold hover:bg-zinc-700 transition-all"
           >
             {connected && shortKey ? `${shortKey} • Disconnect` : 'Connect Wallet'}
@@ -259,7 +272,8 @@ export default function TokenArena() {
               <div className="mb-6 space-y-3">
                 <p className="text-xs text-yellow-500 text-center font-mono uppercase">Connect your wallet to bid</p>
                 <button
-                  onClick={() => connect()}
+                  type="button"
+                  onClick={() => setVisible(true)}
                   className="w-full py-3 bg-[#4C469D] text-white font-bold uppercase text-xs rounded-lg hover:opacity-90"
                 >
                   Connect Wallet
