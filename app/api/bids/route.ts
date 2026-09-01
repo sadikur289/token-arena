@@ -59,14 +59,20 @@ export async function POST(request: Request) {
     const rpc = process.env.SOLANA_RPC || 'https://api.devnet.solana.com';
     const connection = new Connection(rpc, 'confirmed');
 
-    let tx: ParsedTransactionWithMeta | null;
-    try {
-      tx = await connection.getParsedTransaction(signature, {
-        maxSupportedTransactionVersion: 0,
-        commitment: 'confirmed',
-      });
-    } catch (rpcErr) {
-      return NextResponse.json({ error: 'Could not look up transaction on Solana' }, { status: 502 });
+    let tx: ParsedTransactionWithMeta | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        tx = await connection.getParsedTransaction(signature, {
+          maxSupportedTransactionVersion: 0,
+          commitment: 'confirmed',
+        });
+        if (tx) break;
+      } catch (rpcErr) {
+        // Retry on RPC transient error or lag
+      }
+      if (attempt < 2) {
+        await new Promise(res => setTimeout(res, 1000));
+      }
     }
 
     if (!tx) {
